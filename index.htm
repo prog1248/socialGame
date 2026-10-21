@@ -1,73 +1,1141 @@
 <!DOCTYPE html>
-<html lang="ja">
-    <head>
-        <style>
-            body{
-                background:#222222;
+<html lang="ja" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>クロニクル・ファンタジア - ソシャゲ風ターン制RPG</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts Inter & Noto Sans JP -->
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600;800&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Noto Sans JP"', 'sans-serif'],
+          },
+          colors: {
+            game: {
+              gold: '#f59e0b',
+              red: '#ef4444',
+              blue: '#3b82f6',
+              green: '#10b981',
+              purple: '#8b5cf6',
+              dark: '#0f172a',
+              card: '#1e293b'
             }
-        </style>
-    </head>
-    <body>
-        <div id="enemy" class="party"></div>
-        <div id="ally" class="party"></div>
-        <script>
-            const char={
-                human:{
-                    name:"一般人",
-                    element:"無",
-                    HP:100,
-                    MP:100,
-                    AP:100,
-                    DP:100,
-                    CT:100,
-                    trait:["人"],
-                    skill:["パンチ","キック"]
-                },
-                swordMan:{
-                    name:"剣士",
-                    element:"無",
-                    HP:100,
-                    MP:100,
-                    AP:250,
-                    DP:150,
-                    CT:80,
-                    trait:["人"],
-                    skill:["斬撃"]
-                },
-                wizard:{
-                    name:"魔術師",
-                    element:"無",
-                    HP:100,
-                    MP:300,
-                    AP:200,
-                    DP:100,
-                    CT:125,
-                    trait:["人"],
-                    skill:["魔法弾","呪詛","治癒"]
-                },
-                goblin:{
-                    name:"ゴブリン",
-                    element:"無",
-                    HP:70,
-                    MP:80,
-                    AP:100,
-                    DP:90,
-                    CT:70,
-                    trait:["ゴブリン"],
-                    skill:["棍棒殴り"]
-                },
-                fairy:{
-                    name:"精霊",
-                    element:"無",
-                    HP:120,
-                    MP:1000,
-                    AP:70,
-                    DP:80,
-                    CT:110,
-                    trait:["精霊"],
-                    skill:["精霊の加護","精霊の風"]
-                }
-            };
-        </script>
-    </body>
+          },
+          keyframes: {
+            damagePop: {
+              '0%': { transform: 'scale(0.5) translateY(0)', opacity: '0' },
+              '30%': { transform: 'scale(1.3) translateY(-15px)', opacity: '1' },
+              '100%': { transform: 'scale(1) translateY(-40px)', opacity: '0' }
+            },
+            healPop: {
+              '0%': { transform: 'scale(0.5) translateY(0)', opacity: '0' },
+              '30%': { transform: 'scale(1.2) translateY(-10px)', opacity: '1' },
+              '100%': { transform: 'scale(1) translateY(-30px)', opacity: '0' }
+            },
+            shake: {
+              '0%, 100%': { transform: 'translateX(0)' },
+              '20%, 60%': { transform: 'translateX(-8px)' },
+              '40%, 80%': { transform: 'translateX(8px)' }
+            },
+            flash: {
+              '0%': { opacity: '0.8' },
+              '100%': { opacity: '0' }
+            }
+          },
+          animation: {
+            'damage-pop': 'damagePop 0.8s ease-out forwards',
+            'heal-pop': 'healPop 0.8s ease-out forwards',
+            'shake': 'shake 0.4s ease-in-out',
+            'flash': 'flash 0.3s ease-out forwards'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* アプリ用スクロールバーとカスタムグラデーション */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(100, 116, 139, 0.5);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(148, 163, 184, 0.8);
+    }
+    .neon-glow-gold {
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+    }
+    .neon-glow-blue {
+      box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);
+    }
+    .text-shadow-md {
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+    }
+  </style>
+</head>
+<body class="h-full bg-slate-950 text-slate-100 font-sans select-none overflow-hidden flex flex-col items-center justify-center">
+
+  <!-- メインコンテナ（ゲーム画面枠） -->
+  <div id="game-app" class="relative w-full max-w-md h-full md:h-[844px] md:max-h-[95vh] md:rounded-2xl bg-slate-900 border-0 md:border-2 border-slate-700/50 shadow-2xl overflow-hidden flex flex-col">
+
+    <!-- 共通ヘッダー -->
+    <header class="h-12 bg-slate-950/80 backdrop-blur-md border-b border-slate-800 flex items-center justify-between px-4 z-20 shrink-0">
+      <div class="flex items-center gap-2">
+        <i class="fa-solid fa-shield-halved text-amber-400 text-lg"></i>
+        <span class="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-500 text-sm tracking-wider">CHRONICLE FANTASIA</span>
+      </div>
+      <div id="header-stage-info" class="text-xs text-slate-400 font-semibold"></div>
+    </header>
+
+    <!-- 画面切替エリア -->
+    <main class="relative flex-1 overflow-hidden bg-slate-900">
+
+      <!-- ================= 1. ステージ選択画面 ================= -->
+      <section id="screen-stage-select" class="absolute inset-0 flex flex-col p-4 overflow-y-auto space-y-4">
+        <div class="text-center py-2">
+          <h2 class="text-xl font-extrabold text-amber-400 tracking-wide flex items-center justify-center gap-2">
+            <i class="fa-solid fa-map-location-dot"></i> クエスト選択
+          </h2>
+          <p class="text-xs text-slate-400 mt-1">挑戦するステージを選択してください</p>
+        </div>
+
+        <div id="stage-list" class="space-y-3 flex-1 pb-4">
+          <!-- JSで動的に追加されます -->
+        </div>
+      </section>
+
+      <!-- ================= 2. パーティ編成画面 ================= -->
+      <section id="screen-party-edit" class="absolute inset-0 hidden flex-col p-4 overflow-y-auto space-y-4">
+        <div class="flex items-center justify-between">
+          <button onclick="game.showScreen('stage-select')" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold rounded-lg border border-slate-600 flex items-center gap-1 transition">
+            <i class="fa-solid fa-arrow-left"></i> 戻る
+          </button>
+          <h2 class="text-lg font-bold text-amber-400">パーティ編成 (最大4体)</h2>
+          <div class="w-12"></div>
+        </div>
+
+        <!-- 現在選択中のパーティ slots -->
+        <div class="bg-slate-950/60 p-3 rounded-xl border border-slate-800">
+          <div class="text-xs text-slate-400 mb-2 font-semibold">出撃メンバー (タップで外す)</div>
+          <div id="party-slots" class="grid grid-cols-4 gap-2">
+            <!-- JSで構築 -->
+          </div>
+        </div>
+
+        <!-- キャラクター所持一覧 -->
+        <div class="flex-1 flex flex-col min-h-0">
+          <div class="text-xs text-slate-400 mb-2 font-semibold flex items-center justify-between">
+            <span>所持キャラクター一覧 (タップで編成)</span>
+            <span id="character-count" class="text-amber-400"></span>
+          </div>
+          <div id="character-roster" class="grid grid-cols-2 gap-2 overflow-y-auto pr-1 pb-4">
+            <!-- JSで構築 -->
+          </div>
+        </div>
+
+        <!-- 出撃開始ボタン -->
+        <button id="btn-start-battle" onclick="game.startStage()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2 text-base">
+          <i class="fa-solid fa-swords text-lg"></i> クエスト開始
+        </button>
+      </section>
+
+      <!-- ================= 3. ADV (ストーリー) 画面 ================= -->
+      <section id="screen-adv" class="absolute inset-0 hidden flex-col justify-end p-4 bg-cover bg-center transition-all duration-500" style="background-image: url('https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=800&q=80');">
+        <!-- 暗幕オーバーレイ -->
+        <div class="absolute inset-0 bg-slate-950/40"></div>
+
+        <!-- スキップボタン -->
+        <button onclick="adv.skip()" class="absolute top-4 right-4 z-30 px-3 py-1 bg-slate-900/80 hover:bg-slate-800 border border-slate-700 text-xs text-amber-400 font-bold rounded-full backdrop-blur-sm transition">
+          SKIP <i class="fa-solid fa-forward"></i>
+        </button>
+
+        <!-- キャラクター立ち絵風コンテナ -->
+        <div class="relative z-10 flex justify-around items-end h-64 px-4 pointer-events-none mb-2">
+          <div id="adv-char-left" class="w-32 h-56 transition-all duration-300 opacity-0 transform translate-y-4 flex flex-col items-center justify-end">
+            <div id="adv-img-left" class="w-24 h-48 rounded-t-full border-t-2 border-x-2 border-white/20 shadow-2xl flex items-center justify-center text-4xl text-white"></div>
+          </div>
+          <div id="adv-char-right" class="w-32 h-56 transition-all duration-300 opacity-0 transform translate-y-4 flex flex-col items-center justify-end">
+            <div id="adv-img-right" class="w-24 h-48 rounded-t-full border-t-2 border-x-2 border-white/20 shadow-2xl flex items-center justify-center text-4xl text-white"></div>
+          </div>
+        </div>
+
+        <!-- メッセージウィンドウ -->
+        <div onclick="adv.next()" class="relative z-20 bg-slate-950/90 border-2 border-amber-500/50 rounded-2xl p-4 shadow-2xl backdrop-blur-md cursor-pointer min-h-[130px] flex flex-col justify-between">
+          <div>
+            <div id="adv-speaker" class="font-bold text-amber-400 text-sm mb-1 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+              <span id="adv-speaker-name">話者名</span>
+            </div>
+            <p id="adv-text" class="text-sm leading-relaxed text-slate-200"></p>
+          </div>
+          <div class="text-right text-xs text-amber-400/70 font-semibold animate-pulse mt-2">
+            TAP NEXT ▶
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 4. バトル画面 ================= -->
+      <section id="screen-battle" class="absolute inset-0 hidden flex-col justify-between p-3 bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+        
+        <!-- エフェクトフラッシュ層 -->
+        <div id="battle-flash-layer" class="absolute inset-0 pointer-events-none z-30"></div>
+
+        <!-- バトル上部: ターン・CTゲージ情報 -->
+        <div class="bg-slate-950/70 p-2 rounded-xl border border-slate-800 backdrop-blur-sm z-10 flex items-center justify-between text-xs">
+          <div class="flex items-center gap-2">
+            <span class="bg-amber-500/20 text-amber-400 font-extrabold px-2.5 py-1 rounded-lg border border-amber-500/30">
+              TURN <span id="battle-turn-num" class="text-sm">1</span>
+            </span>
+            <span id="battle-status-msg" class="text-slate-300 font-semibold truncate max-w-[150px]">バトル開始</span>
+          </div>
+          <!-- 現在行動可能キャラ -->
+          <div id="active-char-badge" class="hidden items-center gap-1.5 bg-blue-500/20 text-blue-400 border border-blue-500/40 px-2 py-0.5 rounded-full font-bold">
+            <i class="fa-solid fa-bolt animate-bounce"></i> <span id="active-char-name"></span>
+          </div>
+        </div>
+
+        <!-- フィールド（敵＆味方配置） -->
+        <div class="flex-1 my-2 flex flex-col justify-between relative overflow-hidden rounded-xl border border-slate-800/80 bg-slate-950/40 p-2">
+          
+          <!-- 敵パーティエリア（上部） -->
+          <div>
+            <div class="text-[10px] font-bold text-red-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <i class="fa-solid fa-skull"></i> Enemy Units
+            </div>
+            <div id="enemy-party-container" class="grid grid-cols-4 gap-2">
+              <!-- JSで生成 -->
+            </div>
+          </div>
+
+          <!-- VS センターライン / CT進行アニメーション表示 -->
+          <div class="my-auto py-1 border-y border-slate-800/50 flex items-center justify-between px-2 text-[10px] text-slate-500 font-mono">
+            <span>CT TIMELINE</span>
+            <span id="ct-skipping-indicator" class="text-amber-400 font-bold hidden animate-pulse">
+              <i class="fa-solid fa-forward-fast"></i> ターン進行中...
+            </span>
+          </div>
+
+          <!-- プレイヤーパーティエリア（下部） -->
+          <div>
+            <div class="text-[10px] font-bold text-blue-400/80 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <i class="fa-solid fa-shield-cat"></i> Player Party
+            </div>
+            <div id="player-party-container" class="grid grid-cols-4 gap-2">
+              <!-- JSで生成 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 下部操作パネル (アクティブキャラのスキル選択) -->
+        <div class="bg-slate-950/90 border border-slate-800 rounded-xl p-3 z-10 flex flex-col gap-2">
+          <div class="flex items-center justify-between">
+            <div id="action-panel-title" class="text-xs font-bold text-slate-300 flex items-center gap-2">
+              <span>コマンド選択</span>
+            </div>
+            <div id="target-select-hint" class="text-[11px] text-amber-400 font-bold hidden animate-pulse">
+              <i class="fa-solid fa-crosshairs"></i> 対象をタップしてください
+            </div>
+          </div>
+
+          <!-- スキルボタン群 -->
+          <div id="skill-buttons-container" class="grid grid-cols-3 gap-2">
+            <!-- JSで動的生成 -->
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 5. 勝敗リザルトダイアログ ================= -->
+      <div id="modal-result" class="absolute inset-0 bg-slate-950/85 backdrop-blur-md hidden flex-col items-center justify-center p-6 z-50">
+        <div class="bg-slate-900 border-2 border-amber-500/50 rounded-2xl p-6 w-full max-w-sm text-center shadow-2xl relative overflow-hidden">
+          <div id="result-header-bg" class="absolute -top-12 -left-12 -right-12 h-24 bg-gradient-to-r from-amber-500 to-orange-500 rotate-6 opacity-20"></div>
+          
+          <i id="result-icon" class="fa-solid fa-trophy text-5xl text-amber-400 mb-3"></i>
+          <h2 id="result-title" class="text-2xl font-black text-amber-400 mb-2">VICTORY!</h2>
+          <p id="result-msg" class="text-xs text-slate-300 mb-6">ステージクリアおめでとうございます！</p>
+
+          <div class="space-y-2">
+            <button id="btn-result-next" onclick="game.onResultNext()" class="w-full py-3 bg-gradient-to-r from-amber-500 to-orange-600 font-bold rounded-xl text-slate-950 hover:brightness-110 transition shadow-lg">
+              次へ進む
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- JS ロジック -->
+  <script>
+    // ==========================================
+    // 1. マスターデータ（キャラクター・スキル・ステージ）
+    // ==========================================
+
+    // スキル定義
+    const SKILLS = {
+      slash: {
+        id: 'slash',
+        name: 'スラッシュ',
+        type: 'single',
+        power: 1.2,
+        costCT: 100,
+        icon: 'fa-sword',
+        description: '敵単体に物理ダメージ'
+      },
+      heavy_slash: {
+        id: 'heavy_slash',
+        name: '渾身の一撃',
+        type: 'single',
+        power: 2.2,
+        costCT: 140,
+        icon: 'fa-mace',
+        description: '敵単体に強力なダメージ'
+      },
+      fireball: {
+        id: 'fireball',
+        name: 'ファイアボール',
+        type: 'single',
+        power: 1.6,
+        costCT: 110,
+        icon: 'fa-fire',
+        description: '敵単体に火属性魔法ダメージ'
+      },
+      explosion: {
+        id: 'explosion',
+        name: 'エクスプロージョン',
+        type: 'all',
+        power: 1.1,
+        costCT: 160,
+        icon: 'fa-burst',
+        description: '敵全体に爆発ダメージ'
+      },
+      heal: {
+        id: 'heal',
+        name: 'ヒール',
+        type: 'heal',
+        power: 1.8, // ATK依存の回復量倍率
+        costCT: 120,
+        icon: 'fa-heart',
+        description: '味方単体のHPを回復'
+      },
+      speed_buff: {
+        id: 'speed_buff',
+        name: 'アクセルロード',
+        type: 'buff_spd',
+        power: 20, // SPD加算値
+        costCT: 110,
+        icon: 'fa-forward-fast',
+        description: '味方全体のSPDを強化'
+      },
+      boss_strike: {
+        id: 'boss_strike',
+        name: '破壊の業火',
+        type: 'all',
+        power: 1.4,
+        costCT: 150,
+        icon: 'fa-skull-crossbones',
+        description: '全体に絶大なダメージ'
+      }
+    };
+
+    // キャラクターマスターデータ
+    const CHARACTER_MASTER = [
+      {
+        id: 'hero',
+        name: 'ルクス',
+        title: '光の剣士',
+        hp: 320,
+        atk: 55,
+        def: 25,
+        spd: 35,
+        element: 'light',
+        color: 'from-amber-500 to-yellow-600',
+        icon: 'fa-user-shield',
+        skills: [SKILLS.slash, SKILLS.heavy_slash]
+      },
+      {
+        id: 'mage',
+        name: 'エレナ',
+        title: '大魔導士',
+        hp: 220,
+        atk: 75,
+        def: 15,
+        spd: 30,
+        element: 'fire',
+        color: 'from-red-500 to-rose-700',
+        icon: 'fa-wand-magic-sparkles',
+        skills: [SKILLS.fireball, SKILLS.explosion]
+      },
+      {
+        id: 'cleric',
+        name: 'アイリス',
+        title: '聖女',
+        hp: 260,
+        atk: 40,
+        def: 20,
+        spd: 28,
+        element: 'light',
+        color: 'from-emerald-400 to-teal-600',
+        icon: 'fa-hand-holding-medical',
+        skills: [SKILLS.heal, SKILLS.speed_buff]
+      },
+      {
+        id: 'rogue',
+        name: 'ジーン',
+        title: '疾風の双剣士',
+        hp: 250,
+        atk: 60,
+        def: 18,
+        spd: 48, // 高速度
+        element: 'wind',
+        color: 'from-cyan-400 to-blue-600',
+        icon: 'fa-bolt',
+        skills: [SKILLS.slash, SKILLS.speed_buff]
+      },
+      // エネミー用マスターデータ（プレイヤー編成にも選択可能）
+      {
+        id: 'goblin',
+        name: 'ゴブリン',
+        title: '魔物',
+        hp: 180,
+        atk: 38,
+        def: 12,
+        spd: 25,
+        element: 'dark',
+        color: 'from-green-600 to-emerald-800',
+        icon: 'fa-spaghetti-monster-flying',
+        skills: [SKILLS.slash]
+      },
+      {
+        id: 'orc',
+        name: 'オークキング',
+        title: '強大な戦士',
+        hp: 450,
+        atk: 65,
+        def: 30,
+        spd: 22,
+        element: 'dark',
+        color: 'from-amber-800 to-stone-900',
+        icon: 'fa-user-ninja',
+        skills: [SKILLS.heavy_slash]
+      },
+      {
+        id: 'demon_king',
+        name: '魔王ヴァルザ',
+        title: '深淵の支配者',
+        hp: 850,
+        atk: 85,
+        def: 40,
+        spd: 32,
+        element: 'dark',
+        color: 'from-purple-700 to-slate-950',
+        icon: 'fa-crown',
+        skills: [SKILLS.fireball, SKILLS.boss_strike]
+      }
+    ];
+
+    // ステージデータ
+    const STAGE_MASTER = [
+      {
+        id: 1,
+        title: '第1章：平原の遭遇戦',
+        desc: 'ゴブリン群との戦闘。バトルの基本を掴もう。',
+        recommendedLvl: 'Lv 1~',
+        enemies: ['goblin', 'goblin'],
+        storyBefore: [
+          { speaker: 'ルクス', side: 'left', text: '見ろ、前方にゴブリンの群れだ！道を開けるわけにはいかない。' },
+          { speaker: 'エレナ', side: 'right', text: 'ふふ、私の魔法の実験台にちょうどいいわね。蹴散らしましょう！' }
+        ],
+        storyAfter: [
+          { speaker: 'ルクス', side: 'left', text: 'ふぅ、なんとか撃退できたな。手応えがあった。' },
+          { speaker: 'エレナ', side: 'right', text: '次はもっと骨のある相手だといいのだけど。進みましょう！' }
+        ]
+      },
+      {
+        id: 2,
+        title: '第2章：オーク王の砦',
+        desc: '強力な攻撃力を持つオークキングを倒せ！',
+        recommendedLvl: 'Lv 10~',
+        enemies: ['goblin', 'orc', 'goblin'],
+        storyBefore: [
+          { speaker: 'アイリス', side: 'left', text: '気をつけてください、この奥に強い魔気を感じます…！' },
+          { speaker: 'オークキング', side: 'right', text: 'グハハハ！人間どもめ、ここから先は通さんぞ！' }
+        ],
+        storyAfter: [
+          { speaker: 'アイリス', side: 'left', text: 'みなさん無事ですか？聖なる光で傷を癒しますね。' }
+        ]
+      },
+      {
+        id: 3,
+        title: '最終章：魔王降臨',
+        desc: '最大級の試練。高威力の全体攻撃に警戒せよ！',
+        recommendedLvl: 'Lv 20~',
+        enemies: ['demon_king'],
+        storyBefore: [
+          { speaker: '魔王ヴァルザ', side: 'right', text: 'よくぞここまで到達したな、羽虫ども。我が絶望の力を味わうがいい！' },
+          { speaker: 'ルクス', side: 'left', text: '世界に平和を取り戻す！みんな、全力で行くぞ！' }
+        ],
+        storyAfter: [
+          { speaker: 'ルクス', side: 'left', text: '勝った…！世界に光が戻ったんだ！' },
+          { speaker: 'エレナ', side: 'right', text: '最高の戦いだったわね。私たちの勝利よ！' }
+        ]
+      }
+    ];
+
+    // ==========================================
+    // 2. ゲーム管理 & 画面遷移 (Game Controller)
+    // ==========================================
+    class GameController {
+      constructor() {
+        this.currentStage = null;
+        this.playerPartyIds = ['hero', 'mage', 'cleric', 'rogue']; // 初期パーティ編成
+        this.initUI();
+      }
+
+      initUI() {
+        this.renderStageList();
+        this.renderPartyEditScreen();
+      }
+
+      showScreen(screenId) {
+        ['screen-stage-select', 'screen-party-edit', 'screen-adv', 'screen-battle'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.classList.add('hidden');
+        });
+        document.getElementById(`screen-${screenId}`).classList.remove('hidden');
+        document.getElementById(`screen-${screenId}`).classList.add('flex');
+      }
+
+      renderStageList() {
+        const container = document.getElementById('stage-list');
+        container.innerHTML = '';
+
+        STAGE_MASTER.forEach(stage => {
+          const card = document.createElement('div');
+          card.className = 'bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 rounded-xl p-4 transition shadow-md flex flex-col justify-between cursor-pointer';
+          card.innerHTML = `
+            <div class="flex justify-between items-start mb-2">
+              <div>
+                <span class="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-2 py-0.5 rounded font-bold">${stage.recommendedLvl}</span>
+                <h3 class="font-extrabold text-base text-slate-100 mt-1">${stage.title}</h3>
+              </div>
+              <i class="fa-solid fa-chevron-right text-slate-500 text-sm"></i>
+            </div>
+            <p class="text-xs text-slate-400 mb-3">${stage.desc}</p>
+            <div class="flex items-center justify-between pt-2 border-t border-slate-700/50">
+              <span class="text-[11px] text-slate-400"><i class="fa-solid fa-book-open text-amber-400 mr-1"></i>ストーリー有</span>
+              <button onclick="game.selectStage(${stage.id})" class="px-4 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-xs rounded-lg shadow hover:brightness-110 transition">
+                出撃
+              </button>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+
+      selectStage(stageId) {
+        this.currentStage = STAGE_MASTER.find(s => s.id === stageId);
+        document.getElementById('header-stage-info').innerText = this.currentStage.title;
+        this.showScreen('party-edit');
+      }
+
+      renderPartyEditScreen() {
+        // 出撃枠の表示
+        const slotsContainer = document.getElementById('party-slots');
+        slotsContainer.innerHTML = '';
+        for (let i = 0; i < 4; i++) {
+          const charId = this.playerPartyIds[i];
+          const char = CHARACTER_MASTER.find(c => c.id === charId);
+
+          const slot = document.createElement('div');
+          slot.className = `aspect-square rounded-xl border-2 flex flex-col items-center justify-center relative cursor-pointer overflow-hidden transition ${
+            char ? 'border-amber-500/60 bg-gradient-to-br ' + char.color : 'border-dashed border-slate-700 bg-slate-900/50'
+          }`;
+
+          if (char) {
+            slot.innerHTML = `
+              <i class="fa-solid ${char.icon} text-2xl text-white drop-shadow-md mb-1"></i>
+              <span class="text-[10px] font-bold text-white bg-slate-950/70 px-1.5 py-0.5 rounded max-w-full truncate">${char.name}</span>
+              <button onclick="event.stopPropagation(); game.removeFromParty(${i})" class="absolute top-1 right-1 w-5 h-5 bg-red-600 text-white rounded-full text-[10px] flex items-center justify-center font-bold">×</button>
+            `;
+          } else {
+            slot.innerHTML = `<span class="text-slate-600 text-xs font-bold">+ 空き</span>`;
+          }
+          slotsContainer.appendChild(slot);
+        }
+
+        // キャラクター一覧リストの表示
+        const rosterContainer = document.getElementById('character-roster');
+        rosterContainer.innerHTML = '';
+        document.getElementById('character-count').innerText = `${CHARACTER_MASTER.length}体`;
+
+        CHARACTER_MASTER.forEach(char => {
+          const inParty = this.playerPartyIds.includes(char.id);
+          const item = document.createElement('div');
+          item.className = `p-2.5 rounded-xl border flex items-center gap-2.5 cursor-pointer transition ${
+            inParty ? 'bg-slate-800/40 border-slate-800 opacity-50' : 'bg-slate-800 border-slate-700 hover:border-amber-500/50'
+          }`;
+          item.onclick = () => { if (!inParty) this.addToParty(char.id); };
+
+          item.innerHTML = `
+            <div class="w-10 h-10 rounded-lg bg-gradient-to-br ${char.color} flex items-center justify-center text-white shrink-0 shadow">
+              <i class="fa-solid ${char.icon}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-xs font-extrabold text-slate-200 truncate">${char.name}</div>
+              <div class="text-[10px] text-slate-400 flex gap-2 mt-0.5">
+                <span>HP:${char.hp}</span>
+                <span>ATK:${char.atk}</span>
+                <span class="text-amber-400 font-bold">SPD:${char.spd}</span>
+              </div>
+            </div>
+          `;
+          rosterContainer.appendChild(item);
+        });
+      }
+
+      addToParty(charId) {
+        if (this.playerPartyIds.length < 4) {
+          this.playerPartyIds.push(charId);
+          this.renderPartyEditScreen();
+        }
+      }
+
+      removeFromParty(index) {
+        this.playerPartyIds.splice(index, 1);
+        this.renderPartyEditScreen();
+      }
+
+      startStage() {
+        if (this.playerPartyIds.length === 0) {
+          alert('パーティに少なくとも1体以上のキャラクターを配置してください。');
+          return;
+        }
+
+        // 戦闘前ストーリーチェック
+        if (this.currentStage.storyBefore && this.currentStage.storyBefore.length > 0) {
+          adv.start(this.currentStage.storyBefore, () => {
+            this.launchBattle();
+          });
+        } else {
+          this.launchBattle();
+        }
+      }
+
+      launchBattle() {
+        this.showScreen('battle');
+        battle.init(this.playerPartyIds, this.currentStage.enemies);
+      }
+
+      onBattleEnd(isWin) {
+        const modal = document.getElementById('modal-result');
+        const title = document.getElementById('result-title');
+        const icon = document.getElementById('result-icon');
+        const msg = document.getElementById('result-msg');
+
+        if (isWin) {
+          title.innerText = 'VICTORY!';
+          title.className = 'text-2xl font-black text-amber-400 mb-2';
+          icon.className = 'fa-solid fa-trophy text-5xl text-amber-400 mb-3 animate-bounce';
+          msg.innerText = 'ステージをクリアしました！';
+
+          // 勝敗後のストーリー処理
+          this.pendingPostStory = this.currentStage.storyAfter;
+        } else {
+          title.innerText = 'DEFEATED...';
+          title.className = 'text-2xl font-black text-red-500 mb-2';
+          icon.className = 'fa-solid fa-skull text-5xl text-red-500 mb-3';
+          msg.innerText = '全滅してしまいました。編成を見直して再挑戦しましょう。';
+          this.pendingPostStory = null;
+        }
+
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      }
+
+      onResultNext() {
+        document.getElementById('modal-result').classList.add('hidden');
+        document.getElementById('modal-result').classList.remove('flex');
+
+        if (this.pendingPostStory && this.pendingPostStory.length > 0) {
+          const story = this.pendingPostStory;
+          this.pendingPostStory = null;
+          adv.start(story, () => {
+            this.showScreen('stage-select');
+          });
+        } else {
+          this.showScreen('stage-select');
+        }
+      }
+    }
+
+    // ==========================================
+    // 3. ADV (ストーリー) システム
+    // ==========================================
+    class ADVController {
+      constructor() {
+        this.script = [];
+        this.index = 0;
+        this.onComplete = null;
+      }
+
+      start(script, onComplete) {
+        this.script = script;
+        this.index = 0;
+        this.onComplete = onComplete;
+        game.showScreen('adv');
+        this.renderStep();
+      }
+
+      renderStep() {
+        if (this.index >= this.script.length) {
+          if (this.onComplete) this.onComplete();
+          return;
+        }
+
+        const data = this.script[this.index];
+        document.getElementById('adv-speaker-name').innerText = data.speaker;
+        document.getElementById('adv-text').innerText = data.text;
+
+        const leftChar = document.getElementById('adv-char-left');
+        const rightChar = document.getElementById('adv-char-right');
+        const leftImg = document.getElementById('adv-img-left');
+        const rightImg = document.getElementById('adv-img-right');
+
+        // 話者・キャラ立ち絵の演出処理
+        if (data.side === 'left') {
+          leftChar.classList.remove('opacity-0', 'translate-y-4');
+          leftChar.classList.add('opacity-100', 'translate-y-0');
+          rightChar.classList.add('opacity-40');
+          leftImg.className = 'w-24 h-48 rounded-t-full border-t-2 border-x-2 border-amber-400 shadow-2xl flex items-center justify-center text-4xl text-white bg-gradient-to-b from-amber-500 to-orange-700';
+          leftImg.innerHTML = `<i class="fa-solid fa-user"></i>`;
+        } else {
+          rightChar.classList.remove('opacity-0', 'translate-y-4');
+          rightChar.classList.add('opacity-100', 'translate-y-0');
+          leftChar.classList.add('opacity-40');
+          rightImg.className = 'w-24 h-48 rounded-t-full border-t-2 border-x-2 border-red-500 shadow-2xl flex items-center justify-center text-4xl text-white bg-gradient-to-b from-red-600 to-slate-900';
+          rightImg.innerHTML = `<i class="fa-solid fa-user-ninja"></i>`;
+        }
+      }
+
+      next() {
+        this.index++;
+        this.renderStep();
+      }
+
+      skip() {
+        if (this.onComplete) this.onComplete();
+      }
+    }
+
+    // ==========================================
+    // 4. バトルシステム (クールタイム / CT・ウェイトターン制)
+    // ==========================================
+    class BattleEngine {
+      constructor() {
+        this.units = []; // 全バトラー（プレイヤー+エネミー）
+        this.turnCount = 1;
+        this.activeUnit = null; // 現在行動中のキャラ
+        this.selectedSkill = null;
+        this.isProcessing = false;
+      }
+
+      init(playerIds, enemyIds) {
+        this.turnCount = 1;
+        this.units = [];
+        this.isProcessing = false;
+        this.activeUnit = null;
+        this.selectedSkill = null;
+
+        // プレイヤーバトラー生成
+        playerIds.forEach((id, idx) => {
+          const master = CHARACTER_MASTER.find(c => c.id === id);
+          this.units.push(this.createUnitInstance(master, 'player', idx));
+        });
+
+        // エネミーバトラー生成
+        enemyIds.forEach((id, idx) => {
+          const master = CHARACTER_MASTER.find(c => c.id === id);
+          this.units.push(this.createUnitInstance(master, 'enemy', idx));
+        });
+
+        // 【重要仕様】ターン開始時（Turn 0/1初期）：全員CTを最大値（100）にセット
+        this.units.forEach(u => {
+          u.ct = 100;
+        });
+
+        this.updateUI();
+        this.logMessage("バトルスタート！");
+
+        // クールタイム制メインループの開始
+        setTimeout(() => this.processTurnLoop(), 600);
+      }
+
+      createUnitInstance(master, faction, index) {
+        return {
+          instanceId: `${faction}_${index}_${Date.now()}`,
+          id: master.id,
+          name: master.name,
+          maxHp: master.hp,
+          hp: master.hp,
+          atk: master.atk,
+          def: master.def,
+          spd: master.spd,
+          skills: master.skills,
+          faction: faction, // 'player' or 'enemy'
+          color: master.color,
+          icon: master.icon,
+          ct: 100, // クールタイムカウント（0になると行動可能）
+          isDead: false
+        };
+      }
+
+      // ----------------------------------------
+      // CTウェイトターン処理の核心ロジック
+      // ----------------------------------------
+      processTurnLoop() {
+        if (this.checkBattleEnd()) return;
+
+        // 1. 現在CTが0のキャラを抽出
+        let readyUnits = this.units.filter(u => !u.isDead && u.ct <= 0);
+
+        // 2. 行動可能なキャラが誰もいない場合、最速でCTを進める（自動スキップ）
+        if (readyUnits.length === 0) {
+          document.getElementById('ct-skipping-indicator').classList.remove('hidden');
+
+          // 全生の生存キャラの中で、次にCTが0に達するまでの最小時間を計算
+          // 時間 delta = min( ct / spd )
+          let minTimeToAct = Infinity;
+          this.units.forEach(u => {
+            if (!u.isDead) {
+              const time = u.ct / u.spd;
+              if (time < minTimeToAct) minTimeToAct = time;
+            }
+          });
+
+          // 全員のCTを一括カウントダウン減少
+          this.units.forEach(u => {
+            if (!u.isDead) {
+              u.ct = Math.max(0, u.ct - (u.spd * minTimeToAct));
+            }
+          });
+
+          this.updateUI();
+
+          // 高速で次の判定へ
+          setTimeout(() => {
+            document.getElementById('ct-skipping-indicator').classList.add('hidden');
+            this.processTurnLoop();
+          }, 300);
+          return;
+        }
+
+        // 3. 同一ターンに行動可能なキャラが複数いる場合、ランダムに行動順を決定
+        if (readyUnits.length > 1) {
+          // 配列をシャッフル (フィッシャー–イェーツ)
+          for (let i = readyUnits.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [readyUnits[i], readyUnits[j]] = [readyUnits[j], readyUnits[i]];
+          }
+        }
+
+        // 4. 決定された先頭のキャラに行動権を付与
+        this.activeUnit = readyUnits[0];
+        this.turnCount++;
+        this.updateUI();
+
+        this.logMessage(`${this.activeUnit.name} のターン！`);
+
+        if (this.activeUnit.faction === 'player') {
+          // プレイヤーの行動選択待ち
+          this.setupPlayerActionPanel();
+        } else {
+          // エネミーAIによる自動行動
+          setTimeout(() => this.processEnemyAI(), 800);
+        }
+      }
+
+      // ----------------------------------------
+      // プレイヤー＆敵の行動実行
+      // ----------------------------------------
+      setupPlayerActionPanel() {
+        const container = document.getElementById('skill-buttons-container');
+        container.innerHTML = '';
+        this.selectedSkill = null;
+
+        document.getElementById('action-panel-title').innerText = `${this.activeUnit.name} のスキル選択`;
+        document.getElementById('target-select-hint').classList.add('hidden');
+
+        this.activeUnit.skills.forEach(skill => {
+          const btn = document.createElement('button');
+          btn.className = 'p-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 hover:border-amber-500 rounded-xl flex flex-col items-center justify-center text-center transition group';
+          btn.innerHTML = `
+            <i class="fa-solid ${skill.icon} text-amber-400 text-lg mb-1 group-hover:scale-110 transition"></i>
+            <span class="text-xs font-bold text-slate-100">${skill.name}</span>
+            <span class="text-[9px] text-slate-400 mt-0.5">${skill.description}</span>
+          `;
+          btn.onclick = () => this.selectPlayerSkill(skill);
+          container.appendChild(btn);
+        });
+      }
+
+      selectPlayerSkill(skill) {
+        this.selectedSkill = skill;
+        document.getElementById('target-select-hint').classList.remove('hidden');
+
+        // 全体攻撃や味方バフなどでターゲット指定が不要な場合の自動実行
+        if (skill.type === 'all') {
+          const targets = this.units.filter(u => u.faction === 'enemy' && !u.isDead);
+          this.executeAction(this.activeUnit, skill, targets);
+        } else if (skill.type === 'buff_spd') {
+          const targets = this.units.filter(u => u.faction === 'player' && !u.isDead);
+          this.executeAction(this.activeUnit, skill, targets);
+        } else {
+          // 単体ターゲット選択状態を強調
+          this.updateUI();
+        }
+      }
+
+      onUnitClicked(targetUnit) {
+        if (!this.activeUnit || this.activeUnit.faction !== 'player') return;
+        if (!this.selectedSkill) {
+          this.logMessage("先にスキルを選択してください");
+          return;
+        }
+        if (targetUnit.isDead) return;
+
+        // 対象の正当性チェック
+        if (this.selectedSkill.type === 'heal' && targetUnit.faction !== 'player') {
+          this.logMessage("回復スキルは味方に使用してください");
+          return;
+        }
+        if (this.selectedSkill.type === 'single' && targetUnit.faction !== 'enemy') {
+          this.logMessage("攻撃スキルは敵に使用してください");
+          return;
+        }
+
+        this.executeAction(this.activeUnit, this.selectedSkill, [targetUnit]);
+      }
+
+      processEnemyAI() {
+        if (!this.activeUnit || this.activeUnit.isDead) return;
+
+        // 使えるスキルからランダム選出
+        const skill = this.activeUnit.skills[Math.floor(Math.random() * this.activeUnit.skills.length)];
+        let targets = [];
+
+        if (skill.type === 'all') {
+          targets = this.units.filter(u => u.faction === 'player' && !u.isDead);
+        } else if (skill.type === 'heal') {
+          // 最もHP割合が低い味方を優先回復
+          const aliveEnemies = this.units.filter(u => u.faction === 'enemy' && !u.isDead);
+          aliveEnemies.sort((a, b) => (a.hp / a.maxHp) - (b.hp / b.maxHp));
+          targets = [aliveEnemies[0]];
+        } else {
+          // ランダムに生きているプレイヤーを選択
+          const alivePlayers = this.units.filter(u => u.faction === 'player' && !u.isDead);
+          if (alivePlayers.length > 0) {
+            targets = [alivePlayers[Math.floor(Math.random() * alivePlayers.length)]];
+          }
+        }
+
+        if (targets.length > 0) {
+          this.executeAction(this.activeUnit, skill, targets);
+        } else {
+          this.finishTurn();
+        }
+      }
+
+      executeAction(actor, skill, targets) {
+        this.selectedSkill = null;
+        document.getElementById('target-select-hint').classList.add('hidden');
+        document.getElementById('skill-buttons-container').innerHTML = '';
+
+        this.logMessage(`${actor.name} の ${skill.name}！`);
+
+        targets.forEach(target => {
+          if (skill.type === 'single' || skill.type === 'all') {
+            // ダメージ計算: (ATK * 1.5 - DEF * 0.5) * スキル威力 + ランダム要素
+            const baseDamage = Math.max(10, (actor.atk * 1.5) - (target.def * 0.5));
+            const damage = Math.floor(baseDamage * skill.power * (0.9 + Math.random() * 0.2));
+
+            target.hp = Math.max(0, target.hp - damage);
+            if (target.hp === 0) target.isDead = true;
+
+            this.showVisualEffect(target, `-${damage}`, 'damage');
+          } else if (skill.type === 'heal') {
+            const healAmount = Math.floor(actor.atk * skill.power * 1.2);
+            target.hp = Math.min(target.maxHp, target.hp + healAmount);
+
+            this.showVisualEffect(target, `+${healAmount}`, 'heal');
+          } else if (skill.type === 'buff_spd') {
+            target.spd += skill.power;
+            this.showVisualEffect(target, `SPD UP!`, 'heal');
+          }
+        });
+
+        // 【行動後処理】行動完了したキャラのCTをスキルコスト分増やす（クールタイムのリセット）
+        actor.ct += skill.costCT;
+
+        this.updateUI();
+
+        setTimeout(() => {
+          this.finishTurn();
+        }, 1000);
+      }
+
+      finishTurn() {
+        this.activeUnit = null;
+        this.updateUI();
+
+        if (!this.checkBattleEnd()) {
+          // 次のターン進行ループを呼び出し
+          this.processTurnLoop();
+        }
+      }
+
+      checkBattleEnd() {
+        const playerAlive = this.units.some(u => u.faction === 'player' && !u.isDead);
+        const enemyAlive = this.units.some(u => u.faction === 'enemy' && !u.isDead);
+
+        if (!enemyAlive) {
+          setTimeout(() => game.onBattleEnd(true), 600);
+          return true;
+        } else if (!playerAlive) {
+          setTimeout(() => game.onBattleEnd(false), 600);
+          return true;
+        }
+        return false;
+      }
+
+      // ----------------------------------------
+      // UI更新 & ポップアップ演出
+      // ----------------------------------------
+      updateUI() {
+        document.getElementById('battle-turn-num').innerText = this.turnCount;
+
+        // アクティブキャラバッジ
+        const activeBadge = document.getElementById('active-char-badge');
+        if (this.activeUnit) {
+          activeBadge.classList.remove('hidden');
+          activeBadge.classList.add('flex');
+          document.getElementById('active-char-name').innerText = this.activeUnit.name;
+        } else {
+          activeBadge.classList.add('hidden');
+          activeBadge.classList.remove('flex');
+        }
+
+        // プレイヤー＆敵バトラーの描画
+        this.renderUnits('player', 'player-party-container');
+        this.renderUnits('enemy', 'enemy-party-container');
+      }
+
+      renderUnits(faction, containerId) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+
+        const list = this.units.filter(u => u.faction === faction);
+        list.forEach(unit => {
+          const isActive = this.activeUnit && this.activeUnit.instanceId === unit.instanceId;
+          const hpPercent = Math.max(0, Math.min(100, (unit.hp / unit.maxHp) * 100));
+          // CTメーター（0で100%溜まった扱い）
+          const ctPercent = Math.max(0, Math.min(100, 100 - unit.ct));
+
+          const card = document.createElement('div');
+          card.id = `unit-card-${unit.instanceId}`;
+          card.onclick = () => this.onUnitClicked(unit);
+
+          card.className = `relative p-2 rounded-xl border flex flex-col justify-between transition-all duration-300 cursor-pointer ${
+            unit.isDead
+              ? 'bg-slate-950/40 border-slate-800/50 opacity-40 grayscale'
+              : isActive
+              ? 'bg-slate-800 border-amber-400 ring-2 ring-amber-400/50 scale-105 shadow-lg z-10'
+              : 'bg-slate-900/90 border-slate-700/80 hover:border-slate-500'
+          }`;
+
+          card.innerHTML = `
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-[10px] font-extrabold text-slate-200 truncate">${unit.name}</span>
+              <i class="fa-solid ${unit.icon} text-xs ${faction === 'player' ? 'text-blue-400' : 'text-red-400'}"></i>
+            </div>
+
+            <!-- アバターアイコン -->
+            <div class="w-full aspect-square rounded-lg bg-gradient-to-br ${unit.color} flex items-center justify-center my-1 relative overflow-hidden shadow-inner">
+              <i class="fa-solid ${unit.icon} text-2xl text-white drop-shadow"></i>
+              ${unit.isDead ? '<div class="absolute inset-0 bg-slate-950/80 flex items-center justify-center text-red-500 font-black text-xs">KO</div>' : ''}
+            </div>
+
+            <!-- HPゲージ -->
+            <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800 my-0.5">
+              <div class="h-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-300" style="width: ${hpPercent}%"></div>
+            </div>
+            <div class="text-[9px] text-slate-400 text-right font-mono">${unit.hp}/${unit.maxHp}</div>
+
+            <!-- CT(クールタイム) 進行メーター -->
+            <div class="mt-1 pt-1 border-t border-slate-800/60">
+              <div class="flex justify-between items-center text-[8px] text-slate-400 mb-0.5">
+                <span>CT</span>
+                <span class="font-bold ${ctPercent >= 100 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}">${Math.floor(ctPercent)}%</span>
+              </div>
+              <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
+                <div class="h-full ${ctPercent >= 100 ? 'bg-amber-400' : 'bg-blue-500'} transition-all duration-200" style="width: ${ctPercent}%"></div>
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      }
+
+      showVisualEffect(targetUnit, text, type) {
+        const card = document.getElementById(`unit-card-${targetUnit.instanceId}`);
+        if (!card) return;
+
+        // 被弾シェイク演出
+        if (type === 'damage') {
+          card.classList.add('animate-shake');
+          setTimeout(() => card.classList.remove('animate-shake'), 400);
+        }
+
+        // 数値ポップアップテキストの生成
+        const pop = document.createElement('div');
+        pop.className = `absolute z-40 font-black text-lg pointer-events-none left-1/2 -translate-x-1/2 top-1/4 ${
+          type === 'damage' ? 'text-red-500 animate-damage-pop text-shadow-md' : 'text-emerald-400 animate-heal-pop text-shadow-md'
+        }`;
+        pop.innerText = text;
+        card.appendChild(pop);
+
+        setTimeout(() => pop.remove(), 800);
+      }
+
+      logMessage(msg) {
+        document.getElementById('battle-status-msg').innerText = msg;
+      }
+    }
+
+    // ==========================================
+    // 5. アプリケーション初期化
+    // ==========================================
+    let game, adv, battle;
+
+    window.onload = () => {
+      game = new GameController();
+      adv = new ADVController();
+      battle = new BattleEngine();
+    };
+  </script>
+</body>
 </html>
