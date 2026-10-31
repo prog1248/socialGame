@@ -1083,17 +1083,8 @@
             <div class="w-full bg-slate-950 h-2 rounded-full overflow-hidden border border-slate-800 my-0.5">
               <div class="h-full bg-gradient-to-r from-emerald-500 to-green-400 transition-all duration-300" style="width: ${hpPercent}%"></div>
             </div>
-            <div class="text-[9px] text-slate-400 text-right font-mono">${unit.hp}/${unit.maxHp}</div>
-
-            <!-- CT(クールタイム) 進行メーター -->
-            <div class="mt-1 pt-1 border-t border-slate-800/60">
-              <div class="flex justify-between items-center text-[8px] text-slate-400 mb-0.5">
-                <span>CT</span>
-                <span class="font-bold ${ctPercent >= 100 ? 'text-amber-400 animate-pulse' : 'text-slate-400'}">${Math.floor(ctPercent)}%</span>
-              </div>
-              <div class="w-full bg-slate-950 h-1.5 rounded-full overflow-hidden">
-                <div class="h-full ${ctPercent >= 100 ? 'bg-amber-400' : 'bg-blue-500'} transition-all duration-200" style="width: ${ctPercent}%"></div>
-              </div>
+            <div class="text-[9px] text-slate-400 text-right font-mono">
+              ${unit.hp}/${unit.maxHp}
             </div>
           `;
           container.appendChild(card);
