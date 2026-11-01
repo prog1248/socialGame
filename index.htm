@@ -909,15 +909,6 @@
           return;
         }
         if (targetUnit.isDead) return;
-
-        // 対象の正当性チェック
-        if (this.selectedSkill.type === 'heal' && targetUnit.faction !== 'player') {
-          this.logMessage("回復スキルは味方に使用してください");
-          return;
-        }
-        if (this.selectedSkill.type === 'single' && targetUnit.faction !== 'enemy') {
-          this.logMessage("攻撃スキルは敵に使用してください");
-          return;
         }
 
         this.executeAction(this.activeUnit, this.selectedSkill, [targetUnit]);
